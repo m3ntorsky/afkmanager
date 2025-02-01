@@ -1,0 +1,117 @@
+name: Update Lua Version and Create Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config user.name 'GitHub Actions'
+          git config user.email 'actions@github.com'
+
+      - name: Checkout to master branch
+        run: |
+          git checkout master || git checkout -b master
+
+      - name: Temporarily update Lua file version for release
+        id: update_version
+        run: |
+          VERSION_FILE="plugins/afkmanager/core.lua"
+          TAG_VERSION="${GITHUB_REF##*/}"
+
+          echo "Version file: $VERSION_FILE"
+          echo "Tag version: $TAG_VERSION"
+
+          # Read the current version from the GetPluginVersion function (should be 'development')
+          CURRENT_VERSION=$(awk -F'"' '/function GetPluginVersion()/, /end/ { if ($0 ~ /return/) print $2 }' "$VERSION_FILE")
+          echo "Current version in Lua file: $CURRENT_VERSION"
+
+          # Temporarily update the Lua file version to the tag version (without committing changes)
+          sed -i "/function GetPluginVersion()/,/end/s|return \"$CURRENT_VERSION\"|return \"$TAG_VERSION\"|" "$VERSION_FILE"
+
+          # Save the tag version to an environment variable
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+      - name: Remove README and LICENSE files
+        run: |
+          echo "Removing README and LICENSE files"
+          rm -f README.md LICENSE
+      - name: Create ZIP archive
+        id: create_zip
+        run: |
+          REPO_NAME=$(basename -s .git `git config --get remote.origin.url`)
+          ZIP_NAME="${REPO_NAME}.zip"
+          echo "ZIP Name: $ZIP_NAME"
+          zip -r "$ZIP_NAME" . -x "*.git*"
+          echo "ZIP_PATH=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Get last tag before current tag
+        id: get_last_tag
+        run: |
+          # Fetch all tags
+          git fetch --tags
+          # Find the last tag before the current tag
+          LAST_TAG=$(git tag --sort=-creatordate | grep -B 1 "${GITHUB_REF##*/}" | head -n 1)
+          
+          # If LAST_TAG is equal to the current tag, it means no previous tag was found
+          if [ "$LAST_TAG" = "${GITHUB_REF##*/}" ]; then
+            # Remove the current tag from the list
+            LAST_TAG=$(git tag --sort=-creatordate | grep -v "${GITHUB_REF##*/}" | head -n 1)
+          fi
+
+          echo "Last tag before current tag: $LAST_TAG"
+          
+          # Save the last tag to an environment variable
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
+
+      - name: Get commits from last tag to HEAD
+        id: get_commits
+        run: |
+          # Read the last tag from the environment variable
+          LAST_TAG="${{ env.LAST_TAG }}"
+          echo "Last tag: $LAST_TAG"
+
+          # Get commits from the last tag to HEAD
+          if [ -z "$LAST_TAG" ]; then
+            # If LAST_TAG is empty, it means no previous tag was found
+            COMMIT_MESSAGES=$(git log --pretty=format:"* [%h](https://github.com/${{ github.repository }}/commit/%H) - %s" || echo "No commits found")
+          else
+            COMMIT_MESSAGES=$(git log "${LAST_TAG}..HEAD" --pretty=format:"* [%h](https://github.com/${{ github.repository }}/commit/%H) - %s" || echo "No commits found")
+          fi
+          echo "Commits from last tag to HEAD:"
+          echo "$COMMIT_MESSAGES"
+
+          # Save the commit messages to an environment variable
+          echo "COMMITS=${COMMIT_MESSAGES}" >> $GITHUB_ENV
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: |
+            Changes in this release:
+            ${{ env.COMMITS }}
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.ZIP_PATH }}
+          asset_name: ${{ env.ZIP_PATH }}
+          asset_content_type: application/zip

@@ -1,0 +1,8 @@
+{
+    "warn": {
+        "en": "You are AFK.  Please move!"
+    },
+    "kick": {
+        "en" : "You are kick from server because you are AFK."
+    }
+}

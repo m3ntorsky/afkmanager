@@ -1,0 +1,24 @@
+{
+    "prefix": "{red}[AFK Manager]{default}",
+    "immunity": {
+        "enable": true,
+        "flags": "z"
+    },
+    "timer": {
+        "interval": 1
+    },
+    "kick" : {
+        "enable": true,
+        "time": 120
+    },
+    "warn": {
+        "enable": true,
+        "time": [20, 40 , 60, 80, 100]
+    },
+    "slap": {
+        "enable": true,
+        "time": [ 50, 100 ],
+        "damage": 0
+    }
+
+}
