@@ -156,10 +156,10 @@ function AFKManager.SlapPlayer(player)
 
     if health - AFKManager.config["slap.damage"] > 0 then
         local velocity = player:CBaseEntity().AbsVelocity
-        velocity[1] = velocity[1] + random(50, 230) * (random(0, 1) == 1 and -1 or 1)
-		velocity[2] = velocity[2] + random(50, 230) * (random(0, 1) == 1 and -1 or 1)
-		velocity[3] = velocity[3] + random(100, 299)
-        player:CBaseEntity().AbsVelocity = Vector(velocity[1], velocity[2], velocity[3])
+        velocity.x = velocity.x + random(50, 230) * (random(0, 1) == 1 and -1 or 1)
+		velocity.y = velocity.y + random(50, 230) * (random(0, 1) == 1 and -1 or 1)
+		velocity.z = velocity.z + random(100, 299)
+        player:CBaseEntity().AbsVelocity = Vector(velocity.z, velocity.y, velocity.z)
         player:CBaseEntity().Health = health - AFKManager.config["slap.damage"]
     else
         AFKManager.SlayPlayer(player)
