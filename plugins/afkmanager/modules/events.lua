@@ -79,6 +79,18 @@ local function OnPostPlayerShoot(event)
     AFKManager.SetPlayerActivity(event:GetInt("userid"))
 end
 
+---@param event Event
+local function OnPostPlayerTeam(event)
+    if event:GetBool("disconnect") then
+        return
+    end
+
+    local oldTeam = event:GetInt("oldteam")
+    local newTeam = event:GetInt("team")
+    if oldTeam > Team.Spectator and newTeam > Team.Spectator then
+        AFKManager.SetPlayerActivity(event:GetInt("userid"))
+    end
+end
 
 
 AddEventHandler("OnPluginStart", OnPluginStart)
@@ -90,3 +102,4 @@ AddEventHandler("OnPlayerConnectFull", OnPlayerConnectFull)
 AddEventHandler("OnClientKeyStateChange", OnClientKeyStateChange)
 AddEventHandler("OnClientCommand", OnClientCommand)
 AddEventHandler("OnPostPlayerShoot", OnPostPlayerShoot)
+AddEventHandler("OnPostPlayerTeam", OnPostPlayerTeam)

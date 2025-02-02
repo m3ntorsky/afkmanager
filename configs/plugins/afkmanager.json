@@ -7,6 +7,10 @@
     "timer": {
         "interval": 1
     },
+    "move" : {
+        "enable": true,
+        "time": 110
+    },
     "kick" : {
         "enable": true,
         "time": 120

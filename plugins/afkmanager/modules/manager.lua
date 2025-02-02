@@ -21,6 +21,16 @@ function AFKManager:LoadConfig()
 
     self.config["timer.interval"] = self.config["timer.interval"] * 1000
 
+    self.config["move.enable"] = config:Fetch("afkmanager.move.enable") or true
+
+    self.config["move.time"] = config:Fetch("afkmanager.move.time")
+
+    if type(self.config["move.time"]) ~= "number" then
+        self.config["move.time"] = 20
+    end
+
+    self.config["move.time"] = self.config["move.time"] * 1000
+
     self.config["kick.enable"] = config:Fetch("afkmanager.kick.enable") or true
 
     self.config["kick.time"] = config:Fetch("afkmanager.kick.time")
@@ -77,6 +87,12 @@ function AFKManager.Check()
         end
 
         local inactiveTime = currentTime - activeTime
+        if AFKManager.config["move.enable"] then
+            if inactiveTime > AFKManager.config["move.time"] and player:GetVar("afkmanager.moved") == false  then
+                player:ChangeTeam(Team.Spectator)
+                player:SetVar("afkmanager.moved", true)
+            end
+        end
 
         if AFKManager.config["kick.enable"] then
             if inactiveTime > AFKManager.config["kick.time"] then
@@ -128,6 +144,7 @@ function AFKManager.SetPlayerActivity(playerid)
     player:SetVar("afkmanager.activity", time)
     player:SetVar("afkmanager.warn", 0)
     player:SetVar("afkmanager.slap", 0)
+    player:SetVar("afkmanager.moved", false)
 end
 
 function AFKManager.ClearPlayerActivity(playerid)
@@ -139,6 +156,7 @@ function AFKManager.ClearPlayerActivity(playerid)
     player:SetVar("afkmanager.activity", nil)
     player:SetVar("afkmanager.warn", nil)
     player:SetVar("afkmanager.slap", nil)
+    player:SetVar("afkmanager.moved", nil)
 end
 
 ---@param player Player
